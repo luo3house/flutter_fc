@@ -8,7 +8,7 @@ An easy way to create Functional Components (FC) in Flutter.
 
 ```yaml
 dependencies:
-  fc: <latest version>
+  flutter_fc: <latest version>
 ```
 
 ## Lint
