@@ -1,5 +1,7 @@
 # () => Text("FC in Flutter")
 
+[![Pub Version](https://img.shields.io/pub/v/flutter_fc)](https://pub.dev/packages/flutter_fc)
+
 An easy way to create Functional Components (FC) in Flutter.
 
 *The FC is in development.*
