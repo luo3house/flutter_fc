@@ -38,7 +38,7 @@ class BasicSwitchTest extends StatelessWidget {
             children: [
               Checkbox(value: sw, onChanged: (_) => controlled.value = !sw),
               const Text("Toggle Checkbox"),
-              BasicSwitch(sw),
+              BasicSwitch(props: sw),
             ],
           ),
         ),

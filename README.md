@@ -6,26 +6,15 @@ An easy way to create Functional Components (FC) in Flutter.
 
 ## Install
 
+For destructing records type. Dart 3 or greater version is required.
+
 ```yaml
+# ensure dart version >= 3
+environment:
+  sdk: '^3.0.0'
+
 dependencies:
   flutter_fc: <latest version>
-```
-
-## Lint
-
-To avoid variable namings from linter, include FC preset.
-
-```yaml
-# analysis_options.yaml
-include: package:flutter_fc/lints.yaml
-```
-
-or configure manually.
-
-```yaml
-linter:
-  rules:
-    non_constant_identifier_names: false
 ```
 
 ## Equip Powerful Hooks
@@ -49,9 +38,28 @@ final Counter = defineFC((props) {
 });
 ```
 
+## Lint
+
+To avoid IDE lint warnings, include FC preset.
+
+```yaml
+# analysis_options.yaml
+include: package:flutter_fc/lints.yaml
+```
+
+or configure manually.
+
+```yaml
+linter:
+  rules:
+    non_constant_identifier_names: false
+```
+
 ## Acknowledgement
 
 React
+
+Dart 3
 
 ## License
 
