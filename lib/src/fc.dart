@@ -3,8 +3,12 @@ import 'package:flutter/widgets.dart';
 
 import 'utils.dart';
 
+typedef FC<Props> = Widget Function(Props? props, Key? ref);
+typedef MemoizedFC<Props> = Widget Function([Props? props, Key? ref, Key? key]);
+
 var _kFCIndex = 0;
 _FCDispatcher? _kCurrentDispatcher;
+int _nextFCId() => ++_kFCIndex;
 
 abstract class _FCDispatcher {
   final List<Hook> memoizedHooks = [];
@@ -25,7 +29,7 @@ class Hook {
 }
 
 class _FcMountDispatcher extends _FCDispatcher {
-  final _FCWidgetState state;
+  final _FCStatefulWidgetState state;
   _FcMountDispatcher(this.state);
 
   @override
@@ -70,14 +74,15 @@ class _FcMountDispatcher extends _FCDispatcher {
 }
 
 class _FcUpdateDispatcher extends _FCDispatcher {
-  final _FCWidgetState state;
+  final _FCStatefulWidgetState state;
   var hookIndex = 0;
   _FcUpdateDispatcher(this.state) {
     memoizedHooks.addAll(state.hooks ?? []);
   }
 
   Hook retrieveHook(String flag) {
-    assert(memoizedHooks.length >= hookIndex + 1, "should have at least ${hookIndex + 1} hooks but got ${memoizedHooks.length}");
+    assert(memoizedHooks.length >= hookIndex + 1,
+        "should have at least ${hookIndex + 1} hooks but got ${memoizedHooks.length}");
     final hook = memoizedHooks[hookIndex];
     if (hook.flag != flag) {
       assert(false, "expected Hook($flag) but got Hook(${hook.flag})");
@@ -89,7 +94,8 @@ class _FcUpdateDispatcher extends _FCDispatcher {
   @override
   useEffect(Function()? Function() effectFn, List? deps) {
     final hook = retrieveHook("useEffect");
-    hook.effectStale = !ListUtil.shallowEq(hook.deps ?? const [], deps ?? const []);
+    hook.effectStale =
+        !ListUtil.shallowEq(hook.deps ?? const [], deps ?? const []);
     memoizedHooks.add(hook
       ..deps = deps
       ..create = effectFn);
@@ -129,14 +135,11 @@ class _FcUpdateDispatcher extends _FCDispatcher {
   }
 }
 
-class _FCWidget<Props> extends StatefulWidget {
-  late final Type fcType;
-  final Widget Function(Props? props) builder;
-  final Props? props;
-
-  _FCWidget(this.builder, this.props, String name, {super.key}) {
-    fcType = FCType(name);
-  }
+mixin _FCWidget<Props> on Widget {
+  String get name;
+  FC<Props> get builder;
+  Props? get props;
+  Key? get ref;
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
@@ -147,15 +150,47 @@ class _FCWidget<Props> extends StatefulWidget {
   }
 
   @override
-  Type get runtimeType => fcType;
+  Type get runtimeType => FCType("${super.runtimeType.toString()}\$name");
+}
+
+class _FCStatelessWidget<Props> extends StatelessWidget with _FCWidget<Props> {
+  @override
+  final String name;
+  @override
+  final FC<Props> builder;
+  @override
+  final Props? props;
+  @override
+  final Key? ref;
+
+  _FCStatelessWidget(this.builder, this.props, this.ref, this.name,
+      {super.key});
 
   @override
-  State<StatefulWidget> createState() {
-    return _FCWidgetState<Props>();
+  Widget build(BuildContext context) {
+    return builder(props, ref);
   }
 }
 
-class _FCWidgetState<Props> extends State<_FCWidget<Props>> {
+class _FCStatefulWidget<Props> extends StatefulWidget with _FCWidget<Props> {
+  @override
+  final String name;
+  @override
+  final FC<Props> builder;
+  @override
+  final Props? props;
+  @override
+  final Key? ref;
+
+  _FCStatefulWidget(this.builder, this.props, this.ref, this.name, {super.key});
+
+  @override
+  State<StatefulWidget> createState() {
+    return _FCStatefulWidgetState<Props>();
+  }
+}
+
+class _FCStatefulWidgetState<Props> extends State<_FCStatefulWidget<Props>> {
   late _FCDispatcher owner;
   List<Hook>? hooks;
 
@@ -179,13 +214,14 @@ class _FCWidgetState<Props> extends State<_FCWidget<Props>> {
   Widget build(BuildContext context) {
     final builder = widget.builder;
     final props = widget.props;
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) => _flushFrameEffects());
+    WidgetsBinding.instance
+        .addPostFrameCallback((timeStamp) => _flushFrameEffects());
     if (hooks == null) {
       _kCurrentDispatcher = _FcMountDispatcher(this);
     } else {
       _kCurrentDispatcher = _FcUpdateDispatcher(this);
     }
-    final built = builder(props);
+    final built = builder(props, widget.ref);
     hooks = _kCurrentDispatcher!.memoizedHooks;
     return built;
   }
@@ -213,31 +249,83 @@ _FCDispatcher _getCurrentDispatcher() {
 }
 
 class FCRef<T> {
-  T value;
-  FCRef(this.value);
+  T current;
+  FCRef(this.current);
 }
 
 abstract class FCProps {
   void debugFillProperties(DiagnosticPropertiesBuilder properties);
 }
 
+/// useState acquires a mutable value
+/// and a function to mutate and ask for an update
+///
+/// ```dart
+/// final (num, setNum) = useState(0);
+/// ```
 (T, Function(T value)) useState<T>(T init) {
   return _getCurrentDispatcher().useState(init);
 }
 
+/// useMemo acquires a computed value
+/// that will not compute again if items in deps are not changed
+///
+/// ```dart
+/// final swText = useMemo(() => sw ? 'On' : 'Off', [sw])
+/// ```
 T useMemo<T>(T Function() factory, List? deps) {
   return _getCurrentDispatcher().useMemo(factory, deps);
 }
 
+/// useEffect posts a callback after mount or update
+/// that will not called again if items in deps are not changed
+///
+/// ```dart
+/// useEffect(() {
+///   final subscribe = brightness.listen(() {
+///     print("brightness change: ${brightness.value}");
+///   });
+///   return () => subscribe.cancel();
+/// }, [sw]);
+/// ```
 useEffect(Function()? Function() effectFn, List? deps) {
   return _getCurrentDispatcher().useEffect(effectFn, deps);
 }
 
+/// useRef acquires a value holder object
+/// that is mutable but never asks for updates.
+///
+/// ```dart
+/// final textController = useRef(TextController());
+/// textController.current;
+///
+/// final myKey = useRef(GlobalKey<MyStatefulWidgetState>());
+/// myKey.current;
+/// ```
 FCRef<T> useRef<T>(T init) {
   return _getCurrentDispatcher().useRef(init);
 }
 
-Widget Function([Props? props]) defineFC<Props>(Widget Function(Props? props) delegate) {
-  final name = "defineFC_${++_kFCIndex}";
-  return ([props]) => _FCWidget(delegate, props, name);
+/// short for [defineStatefulFC]
+MemoizedFC<Props> defineFC<Props>(FC<Props> fn) {
+  return defineStatefulFC(fn);
+}
+
+/// define a Stateful Function Component,
+/// hooks are allowed to use during function call
+MemoizedFC<Props> defineStatefulFC<Props>(FC<Props> fn) {
+  final name = "defineStatefulFC_${_nextFCId()}";
+  return ([props, ref, key]) =>
+      _FCStatefulWidget(fn, props, ref, name, key: key);
+}
+
+/// define a Stateless Function Component as like a [Builder] delegate.
+///
+/// Typically used for optimizing performance.
+///
+/// DO NOT use any hooks in function call.
+MemoizedFC<Props> defineStatelessFC<Props>(FC<Props> fn) {
+  final name = "defineStatelessFC_${_nextFCId()}";
+  return ([props, ref, key]) =>
+      _FCStatelessWidget(fn, props, ref, name, key: key);
 }
