@@ -47,13 +47,15 @@ class BasicSwitchTest extends StatelessWidget {
   }
 }
 
-final Counter = defineFC((props) {
+Widget CounterFn(props) {
   final (counter, setCounter) = useState(0);
   return ElevatedButton(
     onPressed: () => setCounter(counter + 1),
     child: Text("Counter: $counter"),
   );
-});
+}
+
+final Counter = defineFC(CounterFn);
 
 void main() {
   runApp(MaterialApp(

@@ -40,7 +40,38 @@ final Counter = defineFC((props) {
 });
 ```
 
-## Lint
+## Development Tips
+
+### Hot Update
+
+Dynamic closures are not reassembled during hot update.
+
+```dart
+// CounterFC will NOT schedule a rebuild after a hot update.
+final Counter = defineFC((props) {
+  final (counter, setCounter) = useState(0);
+  return ElevatedButton(
+    onPressed: () => setCounter(counter + 1),
+      child: Text("Counter: $counter"),
+  );
+});
+```
+
+To apply hot update, split the function as a constant field.
+
+```dart
+// After moving outside, widget editied within function will be applied during hot updates.
+_Counter(props) {
+  final (counter, setCounter) = useState(0);
+  return ElevatedButton(
+    onPressed: () => setCounter(counter + 1),
+      child: Text("Counter: $counter"),
+  );
+}
+final Counter = defineFC(_Counter);
+```
+
+### Ignore Naming Warnings
 
 To avoid IDE lint warnings, include FC preset.
 
