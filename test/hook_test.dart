@@ -65,6 +65,32 @@ void main() {
     expect(effectSignals, [true, false, true]);
   });
 
+  testWidgets("useEffect no deps", (tester) async {
+    final effectSignals = <bool>[];
+    final numValue = ValueNotifier(0);
+    final Demo = forwardRef((int? props, ref) {
+      useEffect(() {
+        effectSignals.add(true);
+        return () => effectSignals.add(false);
+      });
+      return const SizedBox();
+    });
+    await tester.pumpWidget(MaterialApp(
+      home: ValueListenableBuilder(
+        valueListenable: numValue,
+        builder: (_, numValue, __) => Demo(),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(effectSignals, [true]);
+    numValue.value++;
+    await tester.pumpAndSettle();
+    expect(effectSignals, [true, false, true]);
+    numValue.value++;
+    await tester.pumpAndSettle();
+    expect(effectSignals, [true, false, true, false, true]);
+  });
+
   testWidgets("useMemo", (tester) async {
     final numValue = ValueNotifier(0);
     final Demo = defineFC((int? value) {
@@ -118,5 +144,27 @@ void main() {
     await tester.tap(find.byKey(ref));
     await tester.pumpAndSettle();
     expect(find.text("2"), findsOneWidget);
+  });
+
+  testWidgets("useBuildContext", (tester) async {
+    final con = BoxConstraints.loose(const Size(100, 200));
+    final Demo = defineFC((props) {
+      final context = useBuildContext();
+      useEffect(() {
+        expect((context.findRenderObject() as RenderBox).constraints, con);
+        return () {};
+      });
+      return const SizedBox();
+    });
+
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: ConstrainedBox(
+          constraints: con,
+          child: Demo(),
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
   });
 }

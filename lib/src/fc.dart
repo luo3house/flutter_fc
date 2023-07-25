@@ -18,6 +18,7 @@ abstract class _FCDispatcher {
   (T, Function(T value)) useState<T>(T init);
   T useMemo<T>(T Function() factory, List? deps);
   useEffect(Function()? Function() effectFn, List? deps);
+  BuildContext useBuildContext();
   FCRef<T> useRef<T>(T init);
 }
 
@@ -75,6 +76,11 @@ class _FcMountDispatcher extends _FCDispatcher {
       }
     );
   }
+
+  @override
+  BuildContext useBuildContext() {
+    return state.context;
+  }
 }
 
 class _FcUpdateDispatcher extends _FCDispatcher {
@@ -98,8 +104,11 @@ class _FcUpdateDispatcher extends _FCDispatcher {
   @override
   useEffect(Function()? Function() effectFn, List? deps) {
     final hook = retrieveHook("useEffect");
-    hook.effectStale =
-        !ListUtil.shallowEq(hook.deps ?? const [], deps ?? const []);
+    if (hook.deps == null || deps == null) {
+      hook.effectStale = true;
+    } else {
+      hook.effectStale = !ListUtil.shallowEq(hook.deps ?? const [], deps);
+    }
     memoizedHooks.add(hook
       ..deps = deps
       ..create = effectFn);
@@ -136,6 +145,11 @@ class _FcUpdateDispatcher extends _FCDispatcher {
         state.requestSetState();
       }
     );
+  }
+
+  @override
+  BuildContext useBuildContext() {
+    return state.context;
   }
 }
 
@@ -309,7 +323,7 @@ T useMemo<T>(T Function() factory, List? deps) {
 ///   return () => subscribe.cancel();
 /// }, [sw]);
 /// ```
-useEffect(Function()? Function() effectFn, List? deps) {
+useEffect(Function()? Function() effectFn, [List? deps]) {
   return _getCurrentDispatcher().useEffect(effectFn, deps);
 }
 
@@ -325,6 +339,11 @@ useEffect(Function()? Function() effectFn, List? deps) {
 /// ```
 FCRef<T> useRef<T>(T init) {
   return _getCurrentDispatcher().useRef(init);
+}
+
+/// bound to flutter, useBuildContext retrieve state's context
+BuildContext useBuildContext() {
+  return _getCurrentDispatcher().useBuildContext();
 }
 
 /// define a Stateful FC,
