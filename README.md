@@ -6,6 +6,14 @@ An easy way to create Functional Components (FC) in Flutter.
 
 *The FC is in development.*
 
+## Features
+
+- ⏱️ No code generation
+- 🖨️ No classes verbosing
+- 🧭 Function oriented
+- 🐇 Speed up developing
+- 🧱 Hot reload
+
 ## Install
 
 For destructing records type. Dart 3 or greater version is required.
@@ -27,6 +35,7 @@ Currently supports these hooks as following:
 - useEffect
 - useMemo
 - useRef
+- useBuildContext
 
 ## Define a Counter FC
 
@@ -42,12 +51,12 @@ final Counter = defineFC((props) {
 
 ## Development Tips
 
-### Hot Update
+### Hot Reload
 
-Dynamic closures are not reassembled during hot update.
+Dynamic closures are not reassembled during hot reload.
 
 ```dart
-// CounterFC will NOT schedule a rebuild after a hot update.
+// CounterFC will NOT schedule a rebuild after a hot reload.
 final Counter = defineFC((props) {
   final (counter, setCounter) = useState(0);
   return ElevatedButton(
@@ -57,10 +66,10 @@ final Counter = defineFC((props) {
 });
 ```
 
-To apply hot update, split the function as a constant field.
+To apply hot reload, split the function as a constant field.
 
 ```dart
-// After moving outside, widget editied within function will be applied during hot updates.
+// After moving outside, widget editied within function will be applied during hot reload.
 _Counter(props) {
   final (counter, setCounter) = useState(0);
   return ElevatedButton(
