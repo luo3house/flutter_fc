@@ -147,24 +147,55 @@ void main() {
   });
 
   testWidgets("useBuildContext", (tester) async {
-    final con = BoxConstraints.loose(const Size(100, 200));
+    final fontSize = Random().nextInt(20) + 10.0;
     final Demo = defineFC((props) {
       final context = useBuildContext();
-      useEffect(() {
-        expect((context.findRenderObject() as RenderBox).constraints, con);
-        return () {};
-      });
+      expect(DefaultTextStyle.of(context).style.fontSize, fontSize);
       return const SizedBox();
     });
 
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
-        body: ConstrainedBox(
-          constraints: con,
+        body: DefaultTextStyle(
+          style: TextStyle(fontSize: fontSize),
           child: Demo(),
         ),
       ),
     ));
     await tester.pumpAndSettle();
+  });
+
+  testWidgets("useImperativeHandle", (tester) async {
+    final stringSignals = <void>[];
+    final Child = defineFC((FCRef<Function?>? ref) {
+      assert(ref != null);
+      useImperativeHandle(ref!, () {
+        return () => stringSignals.add(null);
+      });
+      return const SizedBox();
+    });
+    final Parent = defineFC((props) {
+      final ref = useRef<Function()?>(null);
+      useEffect(() {
+        ref.current?.call();
+        return () {};
+      });
+      return Child(props: ref);
+    });
+
+    final numValue = ValueNotifier(0);
+    await tester.pumpWidget(MaterialApp(
+      home: ValueListenableBuilder(
+        valueListenable: numValue,
+        builder: (_, __, ___) => Parent(),
+      ),
+    ));
+
+    await tester.pumpAndSettle();
+    expect(stringSignals.length, 1);
+
+    numValue.value++;
+    await tester.pumpAndSettle();
+    expect(stringSignals.length, 2);
   });
 }

@@ -1,3 +1,7 @@
+## 0.1.0
+
+* Add useImperativeHandle
+
 ## 0.0.3
 
 * Add useBuildContext

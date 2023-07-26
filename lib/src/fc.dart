@@ -20,6 +20,7 @@ abstract class _FCDispatcher {
   useEffect(Function()? Function() effectFn, List? deps);
   BuildContext useBuildContext();
   FCRef<T> useRef<T>(T init);
+  useImperativeHandle<T>(FCRef<T> ref, T Function() fn);
 }
 
 class Hook {
@@ -75,6 +76,16 @@ class _FcMountDispatcher extends _FCDispatcher {
         state.requestSetState();
       }
     );
+  }
+
+  @override
+  useImperativeHandle<T>(FCRef<T> ref, T Function() fn) {
+    memoizedHooks.add(Hook("useImperativeHandle", _effectFlagUpdate)
+      ..effectStale = true
+      ..create = () {
+        ref.current = fn();
+        return null;
+      });
   }
 
   @override
@@ -148,6 +159,17 @@ class _FcUpdateDispatcher extends _FCDispatcher {
   }
 
   @override
+  useImperativeHandle<T>(FCRef<T> ref, T Function() fn) {
+    final hook = retrieveHook("useImperativeHandle");
+    memoizedHooks.add(hook
+      ..effectStale = true
+      ..create = () {
+        ref.current = fn();
+        return null;
+      });
+  }
+
+  @override
   BuildContext useBuildContext() {
     return state.context;
   }
@@ -168,7 +190,7 @@ mixin _FCWidget<Props> on Widget {
   }
 
   @override
-  Type get runtimeType => FCType("${super.runtimeType.toString()}\$name");
+  Type get runtimeType => FCType("${super.runtimeType.toString()}\$$name");
 }
 
 class _FCStatelessWidget<Props> extends StatelessWidget with _FCWidget<Props> {
@@ -206,11 +228,33 @@ class _FCStatefulWidget<Props> extends StatefulWidget with _FCWidget<Props> {
   State<StatefulWidget> createState() {
     return _FCStatefulWidgetState<Props>();
   }
+
+  @override
+  StatefulElement createElement() {
+    return _FCStatefulElement(this);
+  }
+}
+
+class _FCStatefulElement<Props> extends StatefulElement {
+  _FCStatefulElement(super.widget);
+
+  @override
+  _FCStatefulWidgetState<Props> get state =>
+      super.state as _FCStatefulWidgetState<Props>;
+
+  @override
+  void rebuild({bool force = false}) {
+    super.rebuild(force: force);
+    state._flushUpdateEffects();
+  }
 }
 
 class _FCStatefulWidgetState<Props> extends State<_FCStatefulWidget<Props>> {
   late _FCDispatcher owner;
   List<Hook>? hooks;
+  var scheduledPostFrame = false;
+
+  _FCStatefulElement get fcElement => context as _FCStatefulElement;
 
   void requestSetState() => setState(() {});
 
@@ -226,6 +270,19 @@ class _FCStatefulWidgetState<Props> extends State<_FCStatefulWidget<Props>> {
         }
       }
     }
+  }
+
+  Widget _buildWithHooks() {
+    final builder = widget.builder;
+    final props = widget.props;
+    if (hooks == null) {
+      _kCurrentDispatcher = _FcMountDispatcher(this);
+    } else {
+      _kCurrentDispatcher = _FcUpdateDispatcher(this);
+    }
+    final built = builder(props, widget.ref);
+    hooks = _kCurrentDispatcher!.memoizedHooks;
+    return built;
   }
 
   void _disposeEffects() {
@@ -247,18 +304,7 @@ class _FCStatefulWidgetState<Props> extends State<_FCStatefulWidget<Props>> {
 
   @override
   Widget build(BuildContext context) {
-    final builder = widget.builder;
-    final props = widget.props;
-    WidgetsBinding.instance
-        .addPostFrameCallback((timeStamp) => _flushUpdateEffects());
-    if (hooks == null) {
-      _kCurrentDispatcher = _FcMountDispatcher(this);
-    } else {
-      _kCurrentDispatcher = _FcUpdateDispatcher(this);
-    }
-    final built = builder(props, widget.ref);
-    hooks = _kCurrentDispatcher!.memoizedHooks;
-    return built;
+    return _buildWithHooks();
   }
 }
 
@@ -274,6 +320,11 @@ class FCType implements Type {
   @override
   bool operator ==(Object other) {
     return other is FCType && other.name == name;
+  }
+
+  @override
+  String toString() {
+    return "${super.toString()}(fullName=$fullName)";
   }
 }
 
@@ -339,6 +390,30 @@ useEffect(Function()? Function() effectFn, [List? deps]) {
 /// ```
 FCRef<T> useRef<T>(T init) {
   return _getCurrentDispatcher().useRef(init);
+}
+
+/// useImperativeHandle exposes a value instantiated from fn
+///
+/// this effect always called on each update
+///
+/// ```dart
+/// final Child = defineFC((FCRef<Function?>? ref) {
+///   assert(ref != null);
+///   useImperativeHandle(ref!, () => () => print("child call"));
+///   return const SizedBox();
+/// });
+///
+/// final Parent = defineFC((props) {
+///   final ref = useRef<Function()?>(null);
+///   useEffect(() {
+///     // parent call child
+///     ref.current?.call();
+///   });
+///   return Child(props: ref);
+/// });
+/// ```
+useImperativeHandle<T>(FCRef<T> ref, T Function() fn) {
+  return _getCurrentDispatcher().useImperativeHandle(ref, fn);
 }
 
 /// bound to flutter, useBuildContext retrieve state's context

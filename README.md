@@ -10,6 +10,7 @@ An easy way to create Functional Components (FC) in Flutter.
 
 - ⏱️ No code generation
 - 🖨️ No classes verbosing
+- 📄 Tiny implementations
 - 🧭 Function oriented
 - 🐇 Speed up developing
 - 🧱 Hot reload
@@ -36,8 +37,9 @@ Currently supports these hooks as following:
 - useMemo
 - useRef
 - useBuildContext
+- useImperativeHandle
 
-## Define a Counter FC
+## Quick Example: Define a Counter FC
 
 ```dart
 final Counter = defineFC((props) {
@@ -47,6 +49,10 @@ final Counter = defineFC((props) {
     child: Text("Counter: $counter"),
   );
 });
+
+void main() {
+  runApp(MaterialApp(home: Counter()));
+}
 ```
 
 ## Development Tips
@@ -95,6 +101,7 @@ or configure manually.
 linter:
   rules:
     non_constant_identifier_names: false
+    body_might_complete_normally_nullable: false
 ```
 
 ## Acknowledgement
