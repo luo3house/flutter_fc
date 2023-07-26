@@ -1,0 +1,36 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches: ['main']
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Prerequisite
+        run: echo ${{ github.event.pull_request.head.sha }}
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.10.4'
+          channel: 'stable'
+          cache: true
+          cache-key: 'flutter-:os:-:channel:-:version:-:arch:-:hash:'
+          architecture: x64
+      - name: Install Pub
+        shell: bash
+        working-directory: .
+        run: flutter pub get
+      - name: Run Test
+        shell: bash
+        run: flutter test
