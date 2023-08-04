@@ -3,7 +3,7 @@
 [![Pub Version](https://img.shields.io/pub/v/flutter_fc)](https://pub.dev/packages/flutter_fc)
 [![Github Action](https://github.com/luo3house/flutter_fc/actions/workflows/test.yaml/badge.svg)](https://github.com/luo3house/flutter_fc/actions/workflows/test.yaml)
 
-An easy way to create Functional Components (FC) in Flutter.
+An easy way to create Functional Components (FC) in Flutter, with composable hooks.
 
 *The FC is in development.*
 
@@ -13,6 +13,7 @@ An easy way to create Functional Components (FC) in Flutter.
 - 🖨️ No classes verbosing
 - 📄 Tiny implementations
 - 🧭 Function oriented
+- 🪝 With powerful composable hooks
 - 🐇 Speed up developing
 - 🧱 Hot reload
 
@@ -37,8 +38,8 @@ Currently supports these hooks as following:
 - useEffect
 - useMemo
 - useRef
-- useBuildContext
 - useImperativeHandle
+- useBuildContext
 
 ## Quick Example: Define a Counter FC
 
