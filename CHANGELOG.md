@@ -1,3 +1,7 @@
+## 0.2.0
+
+* DELETED `defineStatelessFC, forwardRefStateless`. All FCs should come from `defineFC`.
+
 ## 0.1.0
 
 * Add useImperativeHandle

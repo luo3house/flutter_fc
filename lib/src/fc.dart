@@ -34,9 +34,15 @@ class Hook {
   Hook(this.name, [this.effectFlag = 0]);
 }
 
-class _FcMountDispatcher extends _FCDispatcher {
-  final _FCStatefulWidgetState state;
-  _FcMountDispatcher(this.state);
+abstract class _FCDispatcherOwner {
+  BuildContext get context;
+  List<Hook>? get memoizedHooks;
+  void requestUpdate();
+}
+
+class _FCMountDispatcher extends _FCDispatcher {
+  final _FCDispatcherOwner owner;
+  _FCMountDispatcher(this.owner);
 
   @override
   useEffect(Function()? Function() effectFn, List? deps) {
@@ -73,7 +79,7 @@ class _FcMountDispatcher extends _FCDispatcher {
       (T value) {
         if (hook.value == value) return;
         hook.value = value;
-        state.requestSetState();
+        owner.requestUpdate();
       }
     );
   }
@@ -90,15 +96,15 @@ class _FcMountDispatcher extends _FCDispatcher {
 
   @override
   BuildContext useBuildContext() {
-    return state.context;
+    return owner.context;
   }
 }
 
 class _FcUpdateDispatcher extends _FCDispatcher {
-  final _FCStatefulWidgetState state;
+  final _FCDispatcherOwner owner;
   var hookIndex = 0;
-  _FcUpdateDispatcher(this.state) {
-    memoizedHooks.addAll(state.hooks ?? []);
+  _FcUpdateDispatcher(this.owner) {
+    memoizedHooks.addAll(owner.memoizedHooks ?? const []);
   }
 
   Hook retrieveHook(String name) {
@@ -153,7 +159,7 @@ class _FcUpdateDispatcher extends _FCDispatcher {
       (T value) {
         if (hook.value == value) return;
         hook.value = value;
-        state.requestSetState();
+        owner.requestUpdate();
       }
     );
   }
@@ -171,15 +177,17 @@ class _FcUpdateDispatcher extends _FCDispatcher {
 
   @override
   BuildContext useBuildContext() {
-    return state.context;
+    return owner.context;
   }
 }
 
-mixin _FCWidget<Props> on Widget {
-  String get name;
-  ForwardRefFC<Props> get builder;
-  Props? get props;
-  Key? get ref;
+class _FCWidget<Props> extends Widget {
+  final String name;
+  final ForwardRefFC<Props> builder;
+  final Props? props;
+  final Key? ref;
+
+  const _FCWidget(this.builder, this.props, this.ref, this.name, {super.key});
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
@@ -191,75 +199,53 @@ mixin _FCWidget<Props> on Widget {
 
   @override
   Type get runtimeType => FCType("${super.runtimeType.toString()}\$$name");
+
+  @override
+  Element createElement() => _FCElement<Props>(this);
 }
 
-class _FCStatelessWidget<Props> extends StatelessWidget with _FCWidget<Props> {
+/// [StatelessElement]
+/// [StatefulElement]
+class _FCElement<Props> extends ComponentElement implements _FCDispatcherOwner {
+  late _FCDispatcher dispatcher;
   @override
-  final String name;
-  @override
-  final ForwardRefFC<Props> builder;
-  @override
-  final Props? props;
-  @override
-  final Key? ref;
+  List<Hook>? memoizedHooks;
 
-  _FCStatelessWidget(this.builder, this.props, this.ref, this.name,
-      {super.key});
+  _FCElement(super.widget);
 
   @override
-  Widget build(BuildContext context) {
-    return builder(props, ref);
-  }
-}
-
-class _FCStatefulWidget<Props> extends StatefulWidget with _FCWidget<Props> {
-  @override
-  final String name;
-  @override
-  final ForwardRefFC<Props> builder;
-  @override
-  final Props? props;
-  @override
-  final Key? ref;
-
-  _FCStatefulWidget(this.builder, this.props, this.ref, this.name, {super.key});
+  _FCWidget<Props> get widget => super.widget as _FCWidget<Props>;
 
   @override
-  State<StatefulWidget> createState() {
-    return _FCStatefulWidgetState<Props>();
-  }
+  BuildContext get context => this;
 
   @override
-  StatefulElement createElement() {
-    return _FCStatefulElement(this);
-  }
-}
-
-class _FCStatefulElement<Props> extends StatefulElement {
-  _FCStatefulElement(super.widget);
-
-  @override
-  _FCStatefulWidgetState<Props> get state =>
-      super.state as _FCStatefulWidgetState<Props>;
+  void requestUpdate() => markNeedsBuild();
 
   @override
   void rebuild({bool force = false}) {
     super.rebuild(force: force);
-    state._flushUpdateEffects();
+    _flushUpdateEffects();
   }
-}
 
-class _FCStatefulWidgetState<Props> extends State<_FCStatefulWidget<Props>> {
-  late _FCDispatcher owner;
-  List<Hook>? hooks;
-  var scheduledPostFrame = false;
+  @override
+  void update(covariant Widget newWidget) {
+    super.update(newWidget);
+    assert(widget == newWidget);
+    rebuild(force: true);
+  }
 
-  _FCStatefulElement get fcElement => context as _FCStatefulElement;
+  @override
+  void unmount() {
+    super.unmount();
+    _disposeEffects();
+  }
 
-  void requestSetState() => setState(() {});
+  @override
+  Widget build() => _buildWithHooks();
 
   void _flushUpdateEffects() {
-    final hooks = this.hooks;
+    final hooks = this.memoizedHooks;
     if (mounted && hooks != null) {
       for (var i = 0; i < hooks.length; i++) {
         final hook = hooks[i];
@@ -272,21 +258,8 @@ class _FCStatefulWidgetState<Props> extends State<_FCStatefulWidget<Props>> {
     }
   }
 
-  Widget _buildWithHooks() {
-    final builder = widget.builder;
-    final props = widget.props;
-    if (hooks == null) {
-      _kCurrentDispatcher = _FcMountDispatcher(this);
-    } else {
-      _kCurrentDispatcher = _FcUpdateDispatcher(this);
-    }
-    final built = builder(props, widget.ref);
-    hooks = _kCurrentDispatcher!.memoizedHooks;
-    return built;
-  }
-
   void _disposeEffects() {
-    final hooks = this.hooks;
+    final hooks = this.memoizedHooks;
     if (hooks != null) {
       for (var i = 0; i < hooks.length; i++) {
         final hook = hooks[i];
@@ -296,15 +269,17 @@ class _FCStatefulWidgetState<Props> extends State<_FCStatefulWidget<Props>> {
     }
   }
 
-  @override
-  void dispose() {
-    _disposeEffects();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _buildWithHooks();
+  Widget _buildWithHooks() {
+    final builder = widget.builder;
+    final props = widget.props;
+    if (memoizedHooks == null) {
+      _kCurrentDispatcher = _FCMountDispatcher(this);
+    } else {
+      _kCurrentDispatcher = _FcUpdateDispatcher(this);
+    }
+    final built = builder(props, widget.ref);
+    memoizedHooks = _kCurrentDispatcher!.memoizedHooks;
+    return built;
   }
 }
 
@@ -424,32 +399,14 @@ BuildContext useBuildContext() {
 /// define a Stateful FC,
 /// hooks are allowed to use during function call
 MemoizedFC<Props> defineFC<Props>(FC<Props> fn) {
-  final name = "defineStatefulFC_${_nextFCId()}";
+  final name = "defineFC_${_nextFCId()}";
   return ({props, ref, key}) =>
-      _FCStatefulWidget((props, ref) => fn(props), props, ref, name, key: key);
-}
-
-/// define a Stateless FC as like a [Builder] delegate.
-///
-/// Typically used for optimizing performance.
-///
-/// DO NOT use any hooks in function call.
-MemoizedFC<Props> defineStatelessFC<Props>(FC<Props> fn) {
-  final name = "defineStatelessFC_${_nextFCId()}";
-  return ({props, ref, key}) =>
-      _FCStatelessWidget((props, ref) => fn(props), props, ref, name, key: key);
+      _FCWidget((props, ref) => fn(props), props, ref, name, key: key);
 }
 
 /// define a Stateful FC with ref forwarded from outside
 MemoizedFC<Props> forwardRef<Props>(ForwardRefFC<Props> fn) {
   final name = "forwardRefStatefulFC_${_nextFCId()}";
-  return ({props, ref, key}) => _FCStatefulWidget(
-      ([props, ref, key]) => fn(props, ref), props, ref, name);
-}
-
-/// define a Stateless FC with ref forwarded from outside
-MemoizedFC<Props> forwardRefStateless<Props>(ForwardRefFC<Props> fn) {
-  final name = "forwardRefStatelessFC_${_nextFCId()}";
-  return ({props, ref, key}) => _FCStatelessWidget(
-      ([props, ref, key]) => fn(props, ref), props, ref, name);
+  return ({props, ref, key}) =>
+      _FCWidget(([props, ref, key]) => fn(props, ref), props, ref, name);
 }
