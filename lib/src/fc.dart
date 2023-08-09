@@ -277,9 +277,16 @@ class _FCElement<Props> extends ComponentElement implements _FCDispatcherOwner {
     } else {
       _kCurrentDispatcher = _FcUpdateDispatcher(this);
     }
-    final built = builder(props, widget.ref);
-    memoizedHooks = _kCurrentDispatcher!.memoizedHooks;
-    return built;
+    try {
+      final built = builder(props, widget.ref);
+      memoizedHooks = _kCurrentDispatcher!.memoizedHooks;
+      return built;
+    } catch (e) {
+      memoizedHooks = null;
+      rethrow;
+    } finally {
+      _kCurrentDispatcher = null;
+    }
   }
 }
 
