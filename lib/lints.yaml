@@ -1,10 +1,12 @@
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  errors:
+    # allow nullable dispose function returned automatically in useEffect()
+    # e.g. useEffect(() => {}), no dispose function returns is allowed.
+    body_might_complete_normally_nullable: ignore
+
 linter:
   rules:
     # allow final variables to be upper camel case e.g. final Child = defineFC(...);
     non_constant_identifier_names: false
-
-    # allow nullable dispose function returned automatically in useEffect()
-    # e.g. useEffect(() => {}), no dispose function returns is allowed.
-    body_might_complete_normally_nullable: false
