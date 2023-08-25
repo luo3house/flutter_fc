@@ -129,6 +129,35 @@ linter:
     non_constant_identifier_names: false
 ```
 
+
+### For constant widget
+
+If it is required to consider perfoamances. There is a shim for constructing constant widgets.
+
+Define arbitrary named arguments, and extends `FCWidget`.
+
+Get all hooks and features during `FCWidget.build()` method as well.
+
+```dart
+/// It is not a constant
+final MyFC = defineFC((props) => Text("MyFC"));
+
+/// It may construct a constant widget
+class MyFC extends FCWidget {
+  const MyFC({super.key});
+  
+  @override
+  build() {
+    final (counter, setCounter) = useState(0);
+    useEffect(() => setCounter(counter + 1), []);
+    return Text("MyFC in constant");
+  }
+}
+
+/// construct a constant widget
+runApp(MaterialApp(home: const MyFC()));
+```
+
 ## Acknowledgement
 
 React
