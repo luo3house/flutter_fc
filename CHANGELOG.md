@@ -1,3 +1,7 @@
+## 0.3.0
+
+* Add shim class [FCWidget], that allows you to construct a const widget.
+
 ## 0.2.1
 
 * [Hot Reload] Resets hooks list after error occurs during build

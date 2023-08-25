@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import 'utils.dart';
+part 'shim.dart';
 
 typedef FC<Props> = Widget Function(Props? props);
 typedef ForwardRefFC<Props> = Widget Function(Props? props, Key? ref);
@@ -181,13 +182,19 @@ class _FcUpdateDispatcher extends _FCDispatcher {
   }
 }
 
-class _FCWidget<Props> extends Widget {
+class _FCPropsWidget<Props> extends Widget implements _FCWidget {
   final String name;
   final ForwardRefFC<Props> builder;
   final Props? props;
   final Key? ref;
 
-  const _FCWidget(this.builder, this.props, this.ref, this.name, {super.key});
+  const _FCPropsWidget(
+    this.builder,
+    this.props,
+    this.ref,
+    this.name, {
+    super.key,
+  });
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
@@ -201,12 +208,16 @@ class _FCWidget<Props> extends Widget {
   Type get runtimeType => FCType("${super.runtimeType.toString()}\$$name");
 
   @override
-  Element createElement() => _FCElement<Props>(this);
+  Element createElement() => _FCElement<_FCPropsWidget>(this);
+
+  @override
+  Widget build() => builder(props, ref);
 }
 
 /// [StatelessElement]
 /// [StatefulElement]
-class _FCElement<Props> extends ComponentElement implements _FCDispatcherOwner {
+class _FCElement<T extends _FCWidget> extends ComponentElement
+    implements _FCDispatcherOwner {
   late _FCDispatcher dispatcher;
   @override
   List<Hook>? memoizedHooks;
@@ -214,7 +225,7 @@ class _FCElement<Props> extends ComponentElement implements _FCDispatcherOwner {
   _FCElement(super.widget);
 
   @override
-  _FCWidget<Props> get widget => super.widget as _FCWidget<Props>;
+  _FCWidget get widget => super.widget as _FCWidget;
 
   @override
   BuildContext get context => this;
@@ -270,15 +281,13 @@ class _FCElement<Props> extends ComponentElement implements _FCDispatcherOwner {
   }
 
   Widget _buildWithHooks() {
-    final builder = widget.builder;
-    final props = widget.props;
     if (memoizedHooks == null) {
       _kCurrentDispatcher = _FCMountDispatcher(this);
     } else {
       _kCurrentDispatcher = _FcUpdateDispatcher(this);
     }
     try {
-      final built = builder(props, widget.ref);
+      final built = widget.build();
       memoizedHooks = _kCurrentDispatcher!.memoizedHooks;
       return built;
     } catch (e) {
@@ -288,6 +297,10 @@ class _FCElement<Props> extends ComponentElement implements _FCDispatcherOwner {
       _kCurrentDispatcher = null;
     }
   }
+}
+
+abstract class _FCWidget implements Widget {
+  Widget build();
 }
 
 class FCType implements Type {
@@ -408,12 +421,12 @@ BuildContext useBuildContext() {
 MemoizedFC<Props> defineFC<Props>(FC<Props> fn) {
   final name = "defineFC_${_nextFCId()}";
   return ({props, ref, key}) =>
-      _FCWidget((props, ref) => fn(props), props, ref, name, key: key);
+      _FCPropsWidget((props, ref) => fn(props), props, ref, name, key: key);
 }
 
 /// define a Stateful FC with ref forwarded from outside
 MemoizedFC<Props> forwardRef<Props>(ForwardRefFC<Props> fn) {
   final name = "forwardRefStatefulFC_${_nextFCId()}";
   return ({props, ref, key}) =>
-      _FCWidget(([props, ref, key]) => fn(props, ref), props, ref, name);
+      _FCPropsWidget(([props, ref, key]) => fn(props, ref), props, ref, name);
 }
