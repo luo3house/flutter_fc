@@ -1,3 +1,7 @@
+## 0.3.1
+
+* Docs of Dart 2 compatibility
+
 ## 0.3.0
 
 * Add shim class [FCWidget], that allows you to construct a const widget.
