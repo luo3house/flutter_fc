@@ -5,13 +5,13 @@
 
 An easy way to create Functional Components (FC) in Flutter, with composable hooks.
 
-*The FC is in development.*
+*The FC has been deployed in some production app builds.*
 
 ## Features
 
-- ⏱️ Never wait code generation
+- ⏱️ Never wait for code generation
 - 🖨️ Never verbosing State***Widget classes
-- 📄 Tiny implementations
+- 📄 Tiny implementations without external deps
 - 🪝 With powerful composable hooks
 - 🐇 Speed up developing
 - 🧱 Hot reload
@@ -21,65 +21,133 @@ An easy way to create Functional Components (FC) in Flutter, with composable hoo
 
 ## Install
 
-For destructuring records type. Dart 3 or greater version is required.
-
 ```yaml
-# ensure dart version >= 3
-environment:
-  sdk: '^3.0.0'
-
 dependencies:
   flutter_fc: <latest version>
 ```
+> 
+> If need destructuring. Dart 3 or greater version is required.
+> https://dart.dev/resources/dart-3-migration
+> 
+> ```yaml
+> environment:
+>   sdk: '^>=3.0.3 <4.0.0'
+> ```
 
-## Equip Powerful Hooks
 
-Currently supports these hooks as following:
+## Quick Example
 
-- useState
-- useEffect
-- useMemo
-- useRef
-- useImperativeHandle
-- useBuildContext
+FCs may be come out as `FCWidget` classes, or by `defineFC`
 
-## Quick Example: Define a Counter FC
+### By extending FCWidget
+
+```dart
+class Counter extends FCWidget {
+  const Counter({super.key});
+
+  @override
+  Widget build() {
+    final (counter, setCounter) = useState(0);
+    return ElevatedButton(
+      onPressed: () => setCounter(counter + 1),
+        child: Text("Counter: $counter"),
+    );
+  }
+}
+```
+
+### By plain function
 
 ```dart
 final Counter = defineFC((props) {
   final (counter, setCounter) = useState(0);
   return ElevatedButton(
     onPressed: () => setCounter(counter + 1),
-    child: Text("Counter: $counter"),
+      child: Text("Counter: $counter"),
   );
 });
+```
 
-void main() {
-  runApp(MaterialApp(home: Counter()));
-}
+## Equip Powerful Hooks
+
+Currently supports these hooks as following:
+
+### useState
+
+```dart
+// Dart 3
+final (flag, setFlag) = useState(false);
+
+// Dart >= 2.12 < 3.0.0
+final state = useState(false);
+final flag = state.$1, setFlag = state.$2;
+```
+
+### useEffect
+
+```dart
+late Steam stream;
+useEffect(() {
+  final sub = stream.listen((e) {...});
+  return () => sub.cancel();
+}, [stream]);
+```
+
+### useMemo
+
+```dart
+final time = 0;
+final seconds = useMemo(() => "${time}s");
+```
+
+### useRef
+
+```dart
+final ref = useRef(0);
+ref.current; // 0
+
+ref.current = 1;
+ref.current; // 1
+```
+
+### useImperativeHandle
+
+```dart
+FCRef<Function()?> reloadRef;
+
+useImperativeHandle(reloadRef, () {
+  return () => reloadSomething();
+});
+
+// parent
+reloadRef.current?.call();
+```
+
+### useBuildContext
+
+Retrieve current FC context
+
+```dart
+final context = useBuildContext();
+final theme = Theme.of(context);
 ```
 
 ## Development Tips
 
-### Define Props
-
-Destructuring records & named records have been supported since Dart 3.
+### Define Reusable Widgets
 
 ```dart
-// dectructure named records instead of verbosing props class.
-Widget _MyWidget(({int value, bool? enabled})? props) {
-  assert(props != null);
-  final (:value, enabled: propsEnabled) = props!;
-  final enabled = useMemo(() => propsEnabled ?? false, [propsEnabled]);
-  return const SizedBox();
-}
-final MyWidget = defineFC(_MyWidget);
+class Counter extends FCWidget {
+  final int? value;
+  Counter({this.value, super.key});
 
-// Use
-MyWidget(props: (
-  value: 10,
-  enabled: false,
-));
+  @override
+  Widget build() {
+    final (counter, setCounter) = useState(value ?? 0);
+    useEffect(() => setCounter(value ?? 0), [value]);
+    return Text("Counter: $counter"");
+  }
+}
 ```
 
 ### Hot Reload
@@ -110,7 +178,7 @@ final Counter = defineFC(_Counter);
 
 ### Ignore Naming Warnings
 
-To avoid IDE lint warnings, include FC preset.
+To avoid IDE lint warnings, include FC lints preset.
 
 ```yaml
 # analysis_options.yaml
@@ -130,41 +198,11 @@ linter:
 ```
 
 
-### For constant widget
-
-If it is required to consider perfoamances. There is a shim for constructing constant widgets.
-
-Define arbitrary named arguments, and extends `FCWidget`.
-
-Get all hooks and features during `FCWidget.build()` method as well.
-
-```dart
-/// It is not a constant
-final MyFC = defineFC((props) => Text("MyFC"));
-
-/// It may construct a constant widget
-class MyFC extends FCWidget {
-  const MyFC({super.key});
-  
-  @override
-  build() {
-    final (counter, setCounter) = useState(0);
-    useEffect(() => setCounter(counter + 1), []);
-    return Text("MyFC in constant");
-  }
-}
-
-/// construct a constant widget
-runApp(MaterialApp(home: const MyFC()));
-```
-
 ## Acknowledgement
 
 React
 
 Dart 3
-
-If this library saves your time, please give a star ⭐️, love from luo<3house.
 
 ## License
 

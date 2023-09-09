@@ -14,7 +14,11 @@ class CounterScreen extends FCWidget {
 
   @override
   Widget build() {
-    final (counter, setCounter) = useState(0);
+    // sdk 2.x interop
+    // final (counter, setCounter) = useState(0);
+    final state = useState(0);
+    final counter = state.$1, setCounter = state.$2;
+
     return Scaffold(
       body: Center(
         child: ElevatedButton(
@@ -65,7 +69,10 @@ class OverlayHierScreen extends FCWidget {
 
   @override
   Widget build() {
-    final (counter, setCounter) = useState(0);
+    // sdk 2.x interop
+    // final (counter, setCounter) = useState(0);
+    final state = useState(0);
+    final counter = state.$1, setCounter = state.$2;
 
     return Overlay(
       initialEntries: [
