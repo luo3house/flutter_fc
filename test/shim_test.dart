@@ -7,7 +7,7 @@ class _MyFCWidget extends FCWidget {
   const _MyFCWidget(this.name);
 
   @override
-  Widget build() {
+  Widget build(BuildContext context) {
     final (text, setText) = useState<String?>(null);
     final greetings = useMemo(() => "Hello $name", [name]);
     useEffect(() {

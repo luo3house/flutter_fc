@@ -13,7 +13,7 @@ class CounterScreen extends FCWidget {
   const CounterScreen({super.key});
 
   @override
-  Widget build() {
+  Widget build(BuildContext context) {
     // sdk 2.x interop
     // final (counter, setCounter) = useState(0);
     final state = useState(0);
@@ -36,7 +36,7 @@ class ErrorTestScreen extends FCWidget {
   const ErrorTestScreen({super.key});
 
   @override
-  Widget build() {
+  Widget build(BuildContext context) {
     flag++;
     final value = flag > 1 ? useMemo(() => 1, []) : useRef(0).current;
     return Text("$value");
@@ -68,7 +68,7 @@ class OverlayHierScreen extends FCWidget {
   const OverlayHierScreen({super.key});
 
   @override
-  Widget build() {
+  Widget build(BuildContext context) {
     // sdk 2.x interop
     // final (counter, setCounter) = useState(0);
     final state = useState(0);

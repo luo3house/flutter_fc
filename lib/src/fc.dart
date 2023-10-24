@@ -211,7 +211,7 @@ class _FCPropsWidget<Props> extends Widget implements _FCWidget {
   Element createElement() => _FCElement<_FCPropsWidget>(this);
 
   @override
-  Widget build() => builder(props, ref);
+  Widget build(BuildContext context) => builder(props, ref);
 }
 
 /// [StatelessElement]
@@ -287,7 +287,7 @@ class _FCElement<T extends _FCWidget> extends ComponentElement
       _kCurrentDispatcher = _FcUpdateDispatcher(this);
     }
     try {
-      final built = widget.build();
+      final built = widget.build(this);
       memoizedHooks = _kCurrentDispatcher!.memoizedHooks;
       return built;
     } catch (e) {
@@ -300,7 +300,7 @@ class _FCElement<T extends _FCWidget> extends ComponentElement
 }
 
 abstract class _FCWidget implements Widget {
-  Widget build();
+  Widget build(BuildContext context);
 }
 
 class FCType implements Type {

@@ -17,23 +17,12 @@ An easy way to create Functional Components (FC) in Flutter, with composable hoo
 - 🧱 Hot reload
 - ⚛️ React style friendly
 
-![About 50% shrink](./image/fc.jpg)
-
 ## Install
 
 ```yaml
 dependencies:
   flutter_fc: <latest version>
 ```
-> 
-> If need destructuring. Dart 3 or greater version is required.
-> https://dart.dev/resources/dart-3-migration
-> 
-> ```yaml
-> environment:
->   sdk: '^>=3.0.3 <4.0.0'
-> ```
-
 
 ## Quick Example
 
@@ -46,7 +35,7 @@ class Counter extends FCWidget {
   const Counter({super.key});
 
   @override
-  Widget build() {
+  Widget build(BuildContext context) {
     final (counter, setCounter) = useState(0);
     return ElevatedButton(
       onPressed: () => setCounter(counter + 1),
@@ -75,7 +64,7 @@ Currently supports these hooks as following:
 ### useState
 
 ```dart
-// Dart 3
+// Dart >= 3
 final (flag, setFlag) = useState(false);
 
 // Dart >= 2.12 < 3.0.0
@@ -123,15 +112,6 @@ useImperativeHandle(reloadRef, () {
 reloadRef.current?.call();
 ```
 
-### useBuildContext
-
-Retrieve current FC context
-
-```dart
-final context = useBuildContext();
-final theme = Theme.of(context);
-```
-
 ## Development Tips
 
 ### Define Reusable Widgets
@@ -142,7 +122,7 @@ class Counter extends FCWidget {
   Counter({this.value, super.key});
 
   @override
-  Widget build() {
+  Widget build(BuildContext context) {
     final (counter, setCounter) = useState(value ?? 0);
     useEffect(() => setCounter(value ?? 0), [value]);
     return Text("Counter: $counter"");
