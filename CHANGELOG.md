@@ -1,3 +1,7 @@
+## 0.4.0
+
+* Make compatible build(BuildContext) for FCWidget.
+
 ## 0.3.1
 
 * Docs of Dart 2 compatibility
