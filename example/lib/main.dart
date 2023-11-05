@@ -4,7 +4,7 @@ import 'package:flutter_fc/flutter_fc.dart';
 void main() {
   runApp(const MaterialApp(
     home: SafeArea(
-      child: ReComputeAfterReassembleTestScreen(),
+      child: SkipErrorAfterReassembleTestScreen(),
     ),
   ));
 }
@@ -50,14 +50,30 @@ class ErrorTestScreen extends FCWidget {
 }
 
 /// value memoized with no deps, should be re-derived after reassemble
-class ReComputeAfterReassembleTestScreen extends FCWidget {
-  const ReComputeAfterReassembleTestScreen({super.key});
+class SkipErrorAfterReassembleTestScreen extends FCWidget {
+  const SkipErrorAfterReassembleTestScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    var value;
-    value = useMemo(() => 1 /* try 2 after build */, const []);
-    return Text("$value");
+    final now = useMemo(() => DateTime.now(), const []);
+    return Scaffold(
+      body: Column(
+        children: [
+          Text("$now"),
+          DangerousFC(),
+        ],
+      ),
+    );
+  }
+}
+
+class DangerousFC extends FCWidget {
+  static var flag = 0;
+  @override
+  Widget build(BuildContext context) {
+    flag++;
+    final rs = flag % 2 == 0 ? useMemo(() => 1, const []) : useRef(2).current;
+    return Text("$rs%");
   }
 }
 

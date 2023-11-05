@@ -222,6 +222,8 @@ class _FCElement<T extends _FCWidget> extends ComponentElement
   @override
   List<Hook>? memoizedHooks;
 
+  var _reassembled = false;
+
   _FCElement(super.widget);
 
   @override
@@ -254,8 +256,8 @@ class _FCElement<T extends _FCWidget> extends ComponentElement
 
   @override
   void reassemble() {
+    _reassembled = true;
     super.reassemble();
-    memoizedHooks = null;
   }
 
   @override
@@ -287,6 +289,8 @@ class _FCElement<T extends _FCWidget> extends ComponentElement
   }
 
   Widget _buildWithHooks() {
+    final reassembledJust = _reassembled;
+    _reassembled = false;
     if (memoizedHooks == null) {
       _kCurrentDispatcher = _FCMountDispatcher(this);
     } else {
@@ -297,8 +301,14 @@ class _FCElement<T extends _FCWidget> extends ComponentElement
       memoizedHooks = _kCurrentDispatcher!.memoizedHooks;
       return built;
     } catch (e) {
-      memoizedHooks = null;
-      rethrow;
+      if (reassembledJust) {
+        memoizedHooks = null;
+        final built = widget.build(this);
+        memoizedHooks = _kCurrentDispatcher!.memoizedHooks;
+        return built;
+      } else {
+        rethrow;
+      }
     } finally {
       _kCurrentDispatcher = null;
     }

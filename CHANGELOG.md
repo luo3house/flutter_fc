@@ -1,3 +1,7 @@
+## 0.5.1
+
+* [Hot Reload] only reset hooks if error occurs after reassemble
+
 ## 0.5.0
 
 * [Hot Reload] reset hooks after reassemble
