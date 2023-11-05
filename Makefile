@@ -5,3 +5,7 @@ web:
 .PHONY:dev
 dev:
 	cd example; flutter run
+
+.PHONY:get
+get:
+	flutter pub get

@@ -4,7 +4,7 @@ import 'package:flutter_fc/flutter_fc.dart';
 void main() {
   runApp(const MaterialApp(
     home: SafeArea(
-      child: OverlayHierScreen(),
+      child: ReComputeAfterReassembleTestScreen(),
     ),
   ));
 }
@@ -30,6 +30,7 @@ class CounterScreen extends FCWidget {
   }
 }
 
+/// cause error on tap
 class ErrorTestScreen extends FCWidget {
   static var flag = 0;
 
@@ -39,6 +40,23 @@ class ErrorTestScreen extends FCWidget {
   Widget build(BuildContext context) {
     flag++;
     final value = flag > 1 ? useMemo(() => 1, []) : useRef(0).current;
+    final tuple = useState(const Object());
+    final update = tuple.$2;
+    return GestureDetector(
+      onTap: () => update(Object()),
+      child: Text("$value"),
+    );
+  }
+}
+
+/// value memoized with no deps, should be re-derived after reassemble
+class ReComputeAfterReassembleTestScreen extends FCWidget {
+  const ReComputeAfterReassembleTestScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    var value;
+    value = useMemo(() => 1 /* try 2 after build */, const []);
     return Text("$value");
   }
 }

@@ -253,6 +253,12 @@ class _FCElement<T extends _FCWidget> extends ComponentElement
   }
 
   @override
+  void reassemble() {
+    super.reassemble();
+    memoizedHooks = null;
+  }
+
+  @override
   Widget build() => _buildWithHooks();
 
   void _flushUpdateEffects() {

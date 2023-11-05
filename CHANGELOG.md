@@ -1,3 +1,7 @@
+## 0.5.0
+
+* [Hot Reload] reset hooks after reassemble
+
 ## 0.4.0
 
 * Make compatible build(BuildContext) for FCWidget.
