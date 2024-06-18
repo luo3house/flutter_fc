@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_fc/flutter_fc.dart';
+import 'package:flutter_fc/flutter_fc_compat.dart';
 
 void main() {
   runApp(const MaterialApp(
@@ -39,7 +39,7 @@ class ErrorTestScreen extends FCWidget {
   @override
   Widget build(BuildContext context) {
     flag++;
-    final value = flag > 1 ? useMemo(() => 1, []) : useRef(0).current;
+    final value = flag > 1 ? useMemo(() => 1, []) : useRef(0).value;
     final tuple = useState(const Object());
     final update = tuple.$2;
     return GestureDetector(
@@ -72,7 +72,7 @@ class DangerousFC extends FCWidget {
   @override
   Widget build(BuildContext context) {
     flag++;
-    final rs = flag % 2 == 0 ? useMemo(() => 1, const []) : useRef(2).current;
+    final rs = flag % 2 == 0 ? useMemo(() => 1, const []) : useRef(2).value;
     return Text("$rs%");
   }
 }
@@ -94,7 +94,7 @@ class DangerousFC extends FCWidget {
 /// };
 /// ```
 class OverlayHierScreen extends FCWidget {
-  static final Child = defineFC((Function()? callParent) {
+  static final Child = defineFC((BuildContext context, Function()? callParent) {
     useEffect(() => callParent?.call());
     return const SizedBox();
   });

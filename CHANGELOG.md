@@ -1,3 +1,9 @@
+## 1.0.0
+
+* Redefine flutter rendering hooks.
+
+* Mark some of react-style hooks deprecated.
+
 ## 0.5.1
 
 * [Hot Reload] only reset hooks if error occurs after reassemble

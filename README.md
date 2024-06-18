@@ -5,15 +5,16 @@
 
 An easy way to create Functional Components (FC) in Flutter, with composable hooks.
 
-*The FC has been deployed in some production app builds.*
+*The FC has been deployed in some production app builds. FC aims to save your time.*
 
 ## Features
 
-- ⏱️ Never wait for code generation
-- 🖨️ Never verbosing State***Widget classes
+- ⏱️ No need to generate codes
+- 🖨️ No need to verbose StateXXXWidget & State\<XXX> classes
 - 📄 Tiny implementations without external deps
-- 🪝 With powerful composable hooks
+- 🪝 Built-in powerful composable hooks
 - 🐇 Speed up developing
+- 🎯 Focus on performance optimization
 - 🧱 Hot reload
 - ⚛️ React style friendly
 
@@ -21,14 +22,12 @@ An easy way to create Functional Components (FC) in Flutter, with composable hoo
 
 ```yaml
 dependencies:
-  flutter_fc: <latest version>
+  flutter_fc: ^1.0.0
 ```
 
-## Quick Example
+## Quick Start
 
-FCs may be come out as `FCWidget` classes, or by `defineFC`
-
-### By extending FCWidget
+No need to create a StatefulWidget class and a State for it.
 
 ```dart
 class Counter extends FCWidget {
@@ -45,10 +44,10 @@ class Counter extends FCWidget {
 }
 ```
 
-### By plain function
+Dynamically create a temporary widget type, Not recommended.
 
 ```dart
-final Counter = defineFC((props) {
+final Counter = defineFC((context, props) {
   final (counter, setCounter) = useState(0);
   return ElevatedButton(
     onPressed: () => setCounter(counter + 1),
@@ -57,124 +56,133 @@ final Counter = defineFC((props) {
 });
 ```
 
-## Equip Powerful Hooks
-
-Currently supports these hooks as following:
+## Using hooks
 
 ### useState
 
-```dart
-// Dart >= 3
-final (flag, setFlag) = useState(false);
+Create or restore with initial value stored in element, and get a function to let it update and rebuild.
 
-// Dart >= 2.12 < 3.0.0
-final state = useState(false);
-final flag = state.$1, setFlag = state.$2;
+```dart
+final (loading, setLoading) = useState(false);
 ```
 
-### useEffect
+`useSetState` instead in case of just want to trigger an rebuild.
 
 ```dart
-late Steam stream;
-useEffect(() {
-  final sub = stream.listen((e) {...});
-  return () => sub.cancel();
-}, [stream]);
+final update = useSetState();
+
+update(); // trigger an rebuild
+```
+
+### useIsMounted
+
+Return a function, call to get whether element is mounted.
+
+```dart
+final isMounted = useIsMounted();
+
+Timer(const Duration(seconds: 3), () {
+  if (isMounted()) {
+    // element is still present
+  }
+});
+```
+
+### useElement
+
+Retrieve current building element. It inherits `BuildContext` so...
+
+```dart
+final context = useElement();
+final theme = Theme.of(context);
+final navigator = Navigator.of(context);
+```
+
+
+### useDidChangeDependencies
+
+Post a callback, called on element's dependencies were changed.
+
+### useReassemble
+
+Post a callback, called on element receives reassemble directive.
+
+```dart
+useReassemble(() => textController.clear());
+```
+
+### useDispose
+
+Post a callback, called before element unmounts.
+
+```dart
+final timer = useMemo(() => Timer(...));
+useDispose(timer.cancel);
+```
+
+### useDiff
+
+Post a callback, called on dependencies are different from before.
+
+```dart
+final (flag, setFlag) = useState(false);
+useDiff(() {
+  print("Flag is changed to: $flag");
+
+  // DO NOT TRIGGER UPDATE HERE setFlag(false);
+}, [flag]);
 ```
 
 ### useMemo
 
+Give a factory to create value, get the same object on each build until dependencies were changed.
+
 ```dart
-final time = 0;
-final seconds = useMemo(() => "${time}s");
+final (percent, setPercent) = useState(20);
+final prettierPercent = useMemo(() => "${percent} %", [percent]);
 ```
 
 ### useRef
 
-```dart
-final ref = useRef(0);
-ref.current; // 0
-
-ref.current = 1;
-ref.current; // 1
-```
-
-### useImperativeHandle
+Create or restore with initial value stored in a `Ref`, which holds the value only.
 
 ```dart
-FCRef<Function()?> reloadRef;
+final timerRef = useRef<Timer>(); // nullable
 
-useImperativeHandle(reloadRef, () {
-  return () => reloadSomething();
-});
-
-// parent
-reloadRef.current?.call();
+final flagRef = useRefMust(false); // not null
 ```
 
-## Development Tips
+### useValue
 
-### Define Reusable Widgets
+Create or restore with initial value stored in an `ValueNotifier`, which update listeners on its value has changed.
 
 ```dart
-class Counter extends FCWidget {
-  final int? value;
-  Counter({this.value, super.key});
+final loading = useValue(() => false);
 
-  @override
-  Widget build(BuildContext context) {
-    final (counter, setCounter) = useState(value ?? 0);
-    useEffect(() => setCounter(value ?? 0), [value]);
-    return Text("Counter: $counter"");
-  }
-}
+setLoading(bool newValue) => loading.value = newValue;
+
+return ValueListenableBuilder(
+  valueListenable: loading,
+  builder: (context, flag, child) => flag
+    ? const Text("Loading") 
+    : const SizedBox(),
+);
 ```
 
-### Hot Reload
+### useDisposable
 
-Dynamic closures are not reassembled during hot reload.To apply hot reload, move the function out of scope.
+Create or restore a disposable instance. It may be called with `.disposed()` if it inherits from `ChangeNotifier` or `StreamSink`,
+
+Commonly used descendant classes:
+- ChangeNotifier
+- ValueNotifier
+- StreamController
+- FocusNode
+- TextEditingController
 
 ```dart
-// [NO] Define from closure.
-final Counter = defineFC((props) {
-  final (counter, setCounter) = useState(0);
-  return ElevatedButton(
-    onPressed: () => setCounter(counter + 1),
-      child: Text("Counter: $counter"),
-  );
-});
-
-// [OK] Define from const function
-_Counter(props) {
-  final (counter, setCounter) = useState(0);
-  return ElevatedButton(
-    onPressed: () => setCounter(counter + 1),
-      child: Text("Counter: $counter"),
-  );
-}
-final Counter = defineFC(_Counter);
-```
-
-
-### Ignore Naming Warnings
-
-To avoid IDE lint warnings, include FC lints preset.
-
-```yaml
-# analysis_options.yaml
-include: package:flutter_fc/lints.yaml
-```
-
-or configure manually.
-
-```yaml
-analyzer:
-  errors:
-    body_might_complete_normally_nullable: ignore
-
-linter:
-  rules:
-    non_constant_identifier_names: false
+// auto disposed on unmount
+final controller = useDisposable(() => TextEditingController());
 ```
 
 
