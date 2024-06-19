@@ -1,3 +1,9 @@
+## 1.1.0
+
+* Add optional parameter constructor for "Ref"
+
+* Delete export fc in compat
+
 ## 1.0.0
 
 * Redefine flutter rendering hooks.

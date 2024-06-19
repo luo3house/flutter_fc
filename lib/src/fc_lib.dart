@@ -10,6 +10,7 @@ RefMust<T> useRefMust<T>(T init) {
 
 class Ref<T> {
   T? value;
+  Ref([T? value]);
 }
 
 class RefMust<T> {
