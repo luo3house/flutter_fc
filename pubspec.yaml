@@ -1,6 +1,6 @@
 name: flutter_fc
 description: Writing Function Component in Flutter, just as writing in React.
-version: 1.1.0
+version: 1.2.0
 homepage: https://github.com/luo3house/flutter_fc
 
 environment:

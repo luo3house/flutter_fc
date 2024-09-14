@@ -1,3 +1,7 @@
+## 1.2.0
+
+* Export experimental inline FC
+
 ## 1.1.0
 
 * Add optional parameter constructor for "Ref"
